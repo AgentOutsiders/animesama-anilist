@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "AnimeSama-AniList",
+  "version": "0.1",
+  "description": "Connecte tes visionnages Anime-Sama à ton compte AniList.",
+  "content_scripts": [
+    {
+      "matches": ["*://*.anime-sama.to/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
