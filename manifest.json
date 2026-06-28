@@ -3,6 +3,16 @@
   "name": "AnimeSama-AniList",
   "version": "0.1",
   "description": "Connecte tes visionnages Anime-Sama à ton compte AniList.",
+  "permissions": [
+    "identity",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["*://*.anime-sama.to/*"],
