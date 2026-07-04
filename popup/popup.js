@@ -55,3 +55,46 @@ logoutBtn.addEventListener('click', () =>
         showDisconnectedState();
     });
 });
+
+// Parameters for tracking mode and auto timer
+const trackingSelect = document.getElementById('trackingModeSelect');
+const autoSettings = document.getElementById('autoSettings');
+const timerInput = document.getElementById('timerInput');
+
+chrome.storage.local.get(['trackingMode', 'autoTimerMinutes'], (result) => 
+{
+    const mode = result.trackingMode || 'manual';
+    const minutes = result.autoTimerMinutes || 5;
+    
+    trackingSelect.value = mode;
+    timerInput.value = minutes;
+    
+    if (mode === 'auto') 
+    {
+        autoSettings.style.display = "block";
+    }
+});
+
+trackingSelect.addEventListener('change', (event) => 
+{
+    const selectedMode = event.target.value;
+    chrome.storage.local.set({ trackingMode: selectedMode });
+
+    if (selectedMode === 'auto') 
+    {
+        autoSettings.style.display = "block";
+    } 
+    else 
+    {
+        autoSettings.style.display = "none";
+    }
+});
+
+timerInput.addEventListener('change', (event) => 
+{
+    let newTime = parseInt(event.target.value);
+    
+    if (newTime < 1 || isNaN(newTime)) newTime = 1; 
+    
+    chrome.storage.local.set({ autoTimerMinutes: newTime });
+});

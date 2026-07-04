@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <h3>AniList Sync</h3>
+    <p id="statusText">Statut : Déconnecté</p>
+    
+    <button id="loginBtn">Se connecter à AniList</button>
+    <button id="logoutBtn" style="display: none;">Se déconnecter</button>
+
+    <div id="settingsSection">
+        <hr>
+        <h4>Mode de validation</h4>
+        
+        <select id="trackingModeSelect">
+            <option value="manual">Bouton Manuel</option>
+            <option value="auto">Automatique</option>
+        </select>
+
+        <div id="autoSettings" style="display: none;">
+            <label for="timerInput">Temps avant validation (min) :</label>
+            <input type="number" id="timerInput" min="1" max="60" value="5">
+            
+            <p id="autoWarning">
+                ⚠️ L'épisode sera marqué comme vu après ce délai passé sur la page.
+            </p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
