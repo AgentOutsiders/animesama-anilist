@@ -216,6 +216,12 @@ chrome.storage.onChanged.addListener((changes, areaName) =>
             settingsChanged = true;
         }
 
+        if (changes.anilistToken && changes.anilistToken.newValue) 
+        {
+            console.log("[Anime-Sama-AniList] Nouvelle connexion détectée ! Lancement du script...");
+            initScraper();
+        }
+
         if (settingsChanged && activeSelectElement && currentAnilistId) 
         {
             applyTrackingLogic();
