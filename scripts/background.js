@@ -1,45 +1,51 @@
-const CLIENT_ID = "44440";
+const ID_CHROMIUM = "44440";
+const ID_GECKO = "45203";
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) =>
 {
-    if (request.action === "login") 
+    if (request.action === "login")
     {
-        const authUrl = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
+        const redirectUri = chrome.identity.getRedirectURL();
+        
+        const CLIENT_ID = redirectUri.includes("chromiumapp.org") ? ID_CHROMIUM : ID_GECKO;
+        
+        console.log("URL de redirection utilisée :", redirectUri);
 
+        const authUrl = `https://anilist.co/api/v2/oauth/authorize?client_id=${CLIENT_ID}&response_type=token`;
+        
         chrome.identity.launchWebAuthFlow(
         {
             url: authUrl,
-            interactive: true 
+            interactive: true
         }, 
-        (redirectUrl) => 
+        (redirectUrl) =>
         {
-            if (chrome.runtime.lastError || !redirectUrl) 
+            if (chrome.runtime.lastError || !redirectUrl)
             {
                 console.error("[Anime-Sama-AniList] Auth error:", chrome.runtime.lastError);
                 sendResponse({ success: false });
                 return;
             }
-
+            
             const url = new URL(redirectUrl.replace('#', '?'));
             const token = url.searchParams.get('access_token');
-
-            if (token) 
+            
+            if (token)
             {
                 console.log("[Anime-Sama-AniList] Auth Token successfully retrieved!");
                 
-                chrome.storage.local.set({ anilistToken: token }, () => 
+                chrome.storage.local.set({ anilistToken: token }, () =>
                 {
                     sendResponse({ success: true, token: token });
                 });
-            } 
-            
-            else 
+            }
+            else
             {
                 console.error("[Anime-Sama-AniList] No token found in URL.");
                 sendResponse({ success: false });
             }
         });
-
-        return true; 
+        
+        return true;
     }
 });

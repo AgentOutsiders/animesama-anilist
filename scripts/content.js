@@ -13,6 +13,37 @@ let autoTimerMinutes = 5;
 let autoTimerId = null;
 let activeSelectElement = null;
 
+async function searchAnilist(searchQuery, type)
+{
+    const searchOptions = 
+    {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+        { 
+            query: `query ($search: String, $type: MediaType) { Media (search: $search, type: $type) { id } }`, 
+            variables: { search: searchQuery, type: type } 
+        })
+    };
+
+    try 
+    {
+        const res = await fetch('https://graphql.anilist.co', searchOptions);
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        if (data.data && data.data.Media) 
+        {
+            return data.data.Media.id;
+        }
+    } 
+    catch(e) 
+    { 
+        console.error("[Anime-Sama-AniList] Erreur lors de la requête de recherche :", e); 
+    }
+    return null;
+}
+
 // Function to fetch the user's progress for the current anime/manga
 async function fetchUserProgress() 
 {
@@ -51,7 +82,7 @@ async function fetchUserProgress()
             userProgress = 0;
         }
         
-        console.log(`[Anime-Sama-AniList] Progression actuelle : ${userProgress} épisodes vus.`);
+        console.log(`[Anime-Sama-AniList] Progression actuelle : ${userProgress} épisodes/chapitres vus.`);
     } 
     catch (error) 
     {
@@ -105,7 +136,6 @@ async function markAsWatched()
             
             applyTrackingLogic();
         } 
-        
         else if (data.errors) 
         {
             console.error("[Anime-Sama-AniList] ❌ Erreur AniList :", data.errors);
@@ -164,7 +194,7 @@ function applyTrackingLogic()
         {
             const vuOuLu = activeSelectElement.id === 'selectChapitres' ? "lu" : "vu";
             syncBtn.innerText = `✓ Déjà ${vuOuLu}`;
-            syncBtn.style.backgroundColor = "#16a34a"; // Vert
+            syncBtn.style.backgroundColor = "#16a34a";
             syncBtn.disabled = true;
             syncBtn.style.cursor = "default";
         }
@@ -172,7 +202,7 @@ function applyTrackingLogic()
         {
             const typeText = activeSelectElement.id === 'selectChapitres' ? "chap." : "ép.";
             syncBtn.innerText = `Valider ${typeText} ${currentNumber}`;
-            syncBtn.style.backgroundColor = "#0284c7"; // Bleu
+            syncBtn.style.backgroundColor = "#0284c7";
             
             syncBtn.addEventListener('click', () => 
             {
@@ -183,7 +213,6 @@ function applyTrackingLogic()
 
         activeSelectElement.parentNode.insertBefore(syncBtn, activeSelectElement.nextSibling);
     }
-    
     else if (currentTrackingMode === 'auto' && !isAlreadyWatched) 
     {
         const milliseconds = autoTimerMinutes * 60 * 1000;
@@ -229,7 +258,6 @@ chrome.storage.onChanged.addListener((changes, areaName) =>
     }
 });
 
-
 async function initScraper()
 {
     const settings = await chrome.storage.local.get(['trackingMode', 'autoTimerMinutes', 'anilistToken']);
@@ -271,48 +299,47 @@ async function initScraper()
             clearInterval(checkInterval); 
             currentNumber = activeSelectElement.value.match(/\d+/)[0]; 
 
-            const searchOptions = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    query: `query ($search: String, $type: MediaType) { Media (search: $search, type: $type) { id } }`, 
-                    variables: { search: title, type: mediaType } 
-                })
-            };
+            let anilistId = await searchAnilist(title, mediaType);
 
-            try 
+            if (!anilistId)
             {
-                const res = await fetch('https://graphql.anilist.co', searchOptions);
+                const urlParts = window.location.pathname.split('/');
                 
-                if (!res.ok) 
+                if (urlParts.length > 2 && urlParts[1] === 'catalogue')
                 {
-                    console.error(`[Anime-Sama-AniList] ❌ L'œuvre "${title}" (${mediaType}) est introuvable sur AniList (Erreur ${res.status}).`);
-                    return;
+                    const fallbackTitle = urlParts[2].replace(/-/g, ' ');
+                    console.log(`[Anime-Sama-AniList] Titre "${title}" introuvable. Essai de secours avec l'URL : "${fallbackTitle}"...`);
+                    anilistId = await searchAnilist(fallbackTitle, mediaType);
                 }
-
-                const data = await res.json();
-
-                if (data.data && data.data.Media) 
-                {
-                    currentAnilistId = data.data.Media.id;
-                    
-                    await fetchUserProgress();
-                    applyTrackingLogic();
-
-                    activeSelectElement.addEventListener('change', (event) => 
-                    {
-                        currentNumber = event.target.value.match(/\d+/)[0];
-                        console.log(`[Anime-Sama-AniList] Passage au numéro ${currentNumber}`);
-                        applyTrackingLogic();
-                    });
-                }
-            } 
-            catch(e) 
-            { 
-                console.error("[Anime-Sama-AniList] Erreur critique lors de la requête :", e); 
             }
+
+            if (!anilistId)
+            {
+                console.error(`[Anime-Sama-AniList] ❌ L'œuvre est introuvable sur AniList (ni avec le titre de la page, ni avec l'URL).`);
+                return;
+            }
+
+            currentAnilistId = anilistId;
+            
+            await fetchUserProgress();
+            applyTrackingLogic();
+
+            activeSelectElement.addEventListener('change', (event) => 
+            {
+                currentNumber = event.target.value.match(/\d+/)[0];
+                console.log(`[Anime-Sama-AniList] Passage au numéro ${currentNumber}`);
+                applyTrackingLogic();
+            });
         }
     }, 500);
 }
 
-window.addEventListener('load', initScraper);
+if (document.readyState === "complete" || document.readyState === "interactive")
+{
+    initScraper();
+}
+else
+{
+    document.addEventListener("DOMContentLoaded", initScraper);
+    window.addEventListener("pageshow", initScraper);
+}
