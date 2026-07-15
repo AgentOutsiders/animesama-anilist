@@ -194,7 +194,7 @@ function applyTrackingLogic()
         {
             const vuOuLu = activeSelectElement.id === 'selectChapitres' ? "lu" : "vu";
             syncBtn.innerText = `✓ Déjà ${vuOuLu}`;
-            syncBtn.style.backgroundColor = "#16a34a";
+            syncBtn.style.backgroundColor = "#16a34a"; 
             syncBtn.disabled = true;
             syncBtn.style.cursor = "default";
         }
@@ -202,7 +202,7 @@ function applyTrackingLogic()
         {
             const typeText = activeSelectElement.id === 'selectChapitres' ? "chap." : "ép.";
             syncBtn.innerText = `Valider ${typeText} ${currentNumber}`;
-            syncBtn.style.backgroundColor = "#0284c7";
+            syncBtn.style.backgroundColor = "#0284c7"; 
             
             syncBtn.addEventListener('click', () => 
             {
@@ -274,7 +274,27 @@ async function initScraper()
 
     const elementTitle = document.querySelector('#titreOeuvre'); 
     if (!elementTitle) return; 
-    const title = elementTitle.innerText.trim();
+    let title = elementTitle.innerText.trim();
+
+    const urlParts = window.location.pathname.split('/');
+    if (urlParts.length > 3 && urlParts[3].startsWith('saison'))
+    {
+        const seasonMatch = urlParts[3].match(/saison(\d+)(?:-(\d+))?/);
+        if (seasonMatch && !title.toLowerCase().includes('season') && !title.toLowerCase().includes('saison'))
+        {
+            const seasonNum = seasonMatch[1];
+            const partNum = seasonMatch[2];
+            
+            if (seasonNum !== "1")
+            {
+                title += " Season " + seasonNum;
+            }
+            if (partNum && partNum !== "1")
+            {
+                title += " Part " + partNum;
+            }
+        }
+    }
 
     const checkInterval = setInterval(async () => 
     {
@@ -303,11 +323,31 @@ async function initScraper()
 
             if (!anilistId)
             {
-                const urlParts = window.location.pathname.split('/');
-                
                 if (urlParts.length > 2 && urlParts[1] === 'catalogue')
                 {
-                    const fallbackTitle = urlParts[2].replace(/-/g, ' ');
+                    let fallbackTitle = urlParts[2].replace(/-/g, ' ');
+                    
+                    if (urlParts.length > 3 && urlParts[3].startsWith('saison'))
+                    {
+
+                        // Overly complicated regex to extract season and part numbers from the URL
+                        const seasonMatch = urlParts[3].match(/saison(\d+)(?:-(\d+))?/);
+                        if (seasonMatch)
+                        {
+                            const seasonNum = seasonMatch[1];
+                            const partNum = seasonMatch[2];
+                            
+                            if (seasonNum !== "1")
+                            {
+                                fallbackTitle += " Season " + seasonNum;
+                            }
+                            if (partNum && partNum !== "1")
+                            {
+                                fallbackTitle += " Part " + partNum;
+                            }
+                        }
+                    }
+
                     console.log(`[Anime-Sama-AniList] Titre "${title}" introuvable. Essai de secours avec l'URL : "${fallbackTitle}"...`);
                     anilistId = await searchAnilist(fallbackTitle, mediaType);
                 }
