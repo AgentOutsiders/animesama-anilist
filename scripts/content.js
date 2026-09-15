@@ -12,6 +12,9 @@ let currentTrackingMode = 'manual';
 let autoTimerMinutes = 5;
 let autoTimerId = null;
 let activeSelectElement = null;
+let activeNextButtons = null;
+let activePrevButtons = null;
+let activeLastButtons = null;
 
 async function searchAnilist(searchQuery, type)
 {
@@ -307,11 +310,17 @@ async function initScraper()
         {
             mediaType = MediaType.ANIME;
             activeSelectElement = selectEpisodes;
+            activeNextButtons = document.querySelectorAll('#nextEpisode');
+            activePrevButtons = document.querySelectorAll('#prevEpisode');
+            activeLastButtons = document.querySelectorAll('#lastEpisode');
         } 
         else if (selectChapitres && window.getComputedStyle(selectChapitres).display !== 'none') 
         {
             mediaType = MediaType.MANGA;
             activeSelectElement = selectChapitres;
+            activeNextButtons = document.querySelectorAll('#nextChapitre');
+            activePrevButtons = document.querySelectorAll('#prevChapitre');
+            activeLastButtons = document.querySelectorAll('#lastChapitre');
         }
 
         if (activeSelectElement) 
@@ -364,11 +373,27 @@ async function initScraper()
             await fetchUserProgress();
             applyTrackingLogic();
 
-            activeSelectElement.addEventListener('change', (event) => 
-            {
-                currentNumber = event.target.value.match(/\d+/)[0];
-                console.log(`[Anime-Sama-AniList] Passage au numéro ${currentNumber}`);
-                applyTrackingLogic();
+            const handleMediaChange = () => {
+                setTimeout(() => {
+                    const newNumberMatch = activeSelectElement.value.match(/\d+/);
+                    if (newNumberMatch) 
+                    {
+                        currentNumber = newNumberMatch[0];
+                        console.log(`[Anime-Sama-AniList] Passage au numéro ${currentNumber}`);
+                        applyTrackingLogic();
+                    }
+                }, 100);
+            };
+
+            activeSelectElement.addEventListener('change', handleMediaChange);
+
+            const allButtons = [...activeNextButtons, ...activePrevButtons, ...activeLastButtons];
+
+            allButtons.forEach(button => {
+                if (button)
+                {
+                    button.addEventListener('click', handleMediaChange);
+                }
             });
         }
     }, 500);
